@@ -11,7 +11,7 @@ const Home = () => {
           Test your knowledge of historical events in this multiplayer timeline game.
         </p>
         <div className={styles.actions}>
-          <Link href="/lobbies" className={styles.playButton}>
+          <Link href="/setup" className={styles.playButton}>
             Play Now
           </Link>
           <Link href="/how-to-play" className={styles.howToPlayButton}>

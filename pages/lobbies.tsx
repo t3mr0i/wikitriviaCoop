@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { useEffect, useState, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '../styles/Lobbies.module.css';
+import { GameContext } from './_app';
 
 interface Lobby {
   id: string;
   name: string;
-  players: { id: string; isHost: boolean }[];
+  players: { id: string; name: string; isHost: boolean }[];
   createdAt: string;
   gameStarted: boolean;
+  gameType?: 'coop' | 'versus';
 }
 
 const Lobbies = () => {
   const router = useRouter();
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const { socket, playerName } = useContext(GameContext);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,59 +24,108 @@ const Lobbies = () => {
   const [currentLobby, setCurrentLobby] = useState<string | null>(null);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3003', {
-      path: '/api/socketio',
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    // Redirect to setup if no player name
+    if (!playerName) {
+      router.replace('/setup');
+      return;
+    }
 
-    newSocket.on('connect', () => {
-      console.log('Connected to socket server');
+    if (!socket) {
+      setError('No connection to server');
+      return;
+    }
+
+    // Check for pending lobby join
+    const pendingLobbyId = typeof window !== 'undefined' ? sessionStorage.getItem('pendingLobbyJoin') : null;
+    if (pendingLobbyId) {
+      console.log('Found pending lobby join:', pendingLobbyId);
+      sessionStorage.removeItem('pendingLobbyJoin');
+      handleJoinLobby(pendingLobbyId);
+    }
+
+    // If socket is already connected, we can start setting up events
+    if (socket.connected) {
+      console.log('Socket is already connected, setting up events');
       setLoading(false);
       setError(null);
-    });
+      // Request initial lobbies list
+      socket.emit('requestLobbies');
+    }
 
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      setLoading(false);
-      setError('Failed to connect to game server. Please try again.');
-    });
+    // Set up event listeners
+    const setupEventListeners = () => {
+      console.log('Setting up socket event listeners');
+      
+      socket.on('connect', () => {
+        console.log('Socket connected in Lobbies');
+        setLoading(false);
+        setError(null);
+        // Request initial lobbies list
+        socket.emit('requestLobbies');
+      });
 
-    newSocket.on('lobbiesUpdate', (updatedLobbies: Lobby[]) => {
-      console.log('Received lobbies update:', updatedLobbies);
-      setLobbies(updatedLobbies);
-    });
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        setLoading(false);
+        setError('Failed to connect to game server. Please try again.');
+      });
 
-    newSocket.on('joinedLobby', ({ lobbyId, isHost }) => {
-      console.log('Joined lobby:', lobbyId, 'isHost:', isHost);
-      setCurrentLobby(lobbyId);
-    });
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected in Lobbies');
+        setLoading(true);
+        setError('Disconnected from server. Reconnecting...');
+      });
 
-    newSocket.on('gameStarting', ({ gameState }) => {
-      console.log('Game is starting!', gameState);
-      router.push(`/play/${gameState.lobbyId}`);
-    });
+      socket.on('lobbiesUpdate', (updatedLobbies: Lobby[]) => {
+        console.log('Received lobbies update:', updatedLobbies);
+        setLobbies(updatedLobbies);
+        setLoading(false);
+      });
 
-    newSocket.on('playerJoined', ({ playerId, playerCount }) => {
-      console.log(`Player ${playerId} joined. Total players: ${playerCount}`);
-    });
+      socket.on('joinedLobby', ({ lobbyId, isHost }) => {
+        console.log('Joined lobby:', lobbyId, 'isHost:', isHost);
+        setCurrentLobby(lobbyId);
+      });
 
-    newSocket.on('playerLeft', ({ playerId, playerCount }) => {
-      console.log(`Player ${playerId} left. Total players: ${playerCount}`);
-    });
+      socket.on('gameStarting', ({ gameState }) => {
+        console.log('Game is starting!', gameState);
+        router.push(`/play/${gameState.lobbyId}`);
+      });
 
-    setSocket(newSocket);
+      socket.on('playerJoined', ({ playerId, playerName, playerCount }) => {
+        console.log(`Player ${playerName} (${playerId}) joined. Total players: ${playerCount}`);
+      });
 
-    return () => {
-      newSocket.close();
+      socket.on('playerLeft', ({ playerId, playerCount }) => {
+        console.log(`Player ${playerId} left. Total players: ${playerCount}`);
+      });
     };
-  }, [router]);
+
+    setupEventListeners();
+
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up socket event listeners in Lobbies');
+      if (socket) {
+        socket.off('connect');
+        socket.off('connect_error');
+        socket.off('disconnect');
+        socket.off('lobbiesUpdate');
+        socket.off('joinedLobby');
+        socket.off('gameStarting');
+        socket.off('playerJoined');
+        socket.off('playerLeft');
+      }
+    };
+  }, [socket, router, playerName]);
 
   const handleCreateLobby = (e: React.FormEvent) => {
     e.preventDefault();
     if (socket && lobbyName.trim()) {
-      socket.emit('createLobby', { name: lobbyName });
+      socket.emit('createLobby', { 
+        name: lobbyName,
+        playerName
+      });
       setLobbyName('');
       setShowCreateForm(false);
     }
@@ -83,7 +133,7 @@ const Lobbies = () => {
 
   const handleJoinLobby = (lobbyId: string) => {
     if (socket) {
-      socket.emit('joinLobby', lobbyId);
+      socket.emit('joinLobby', { lobbyId, playerName });
     }
   };
 
@@ -93,16 +143,18 @@ const Lobbies = () => {
     }
   };
 
-  if (loading) {
+  // Show loading state only if we're actually loading and don't have lobbies yet
+  if (loading && lobbies.length === 0) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
         <p>Connecting to server...</p>
+        {error && <p className={styles.errorMessage}>{error}</p>}
       </div>
     );
   }
 
-  if (error) {
+  if (error && !socket?.connected) {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
@@ -120,14 +172,40 @@ const Lobbies = () => {
           ← Back
         </Link>
         <h1 className={styles.title}>Game Lobbies</h1>
+        <div className={styles.playerInfo}>
+          Playing as: {playerName}
+        </div>
       </div>
       
       {currentLobby ? (
         <div className={styles.currentLobby}>
           <h2>Current Lobby: {lobbies.find(l => l.id === currentLobby)?.name}</h2>
-          <div className={styles.playerCount}>
-            <span className={styles.playerIcon}>👥</span>
-            <span>{lobbies.find(l => l.id === currentLobby)?.players.length || 0} players</span>
+          <div className={styles.inviteSection}>
+            <p>Share this link to invite players:</p>
+            <div className={styles.inviteLink}>
+              <input
+                type="text"
+                readOnly
+                value={`${window.location.origin}/join/${currentLobby}`}
+                className={styles.inviteLinkInput}
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/join/${currentLobby}`);
+                  // You could add a toast notification here
+                }}
+                className={styles.copyButton}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          <div className={styles.playerList}>
+            {lobbies.find(l => l.id === currentLobby)?.players.map(player => (
+              <div key={player.id} className={styles.playerItem}>
+                {player.name} {player.isHost && '(Host)'} {player.id === socket?.id && '(You)'}
+              </div>
+            ))}
           </div>
           {lobbies.find(l => l.id === currentLobby)?.players.find(p => p.id === socket?.id)?.isHost && (
             <button 
@@ -185,6 +263,13 @@ const Lobbies = () => {
                       <div className={styles.playerCount}>
                         <span className={styles.playerIcon}>👥</span>
                         <span>{lobby.players.length} players</span>
+                      </div>
+                      <div className={styles.playerList}>
+                        {lobby.players.map(player => (
+                          <div key={player.id} className={styles.playerName}>
+                            {player.name}
+                          </div>
+                        ))}
                       </div>
                     </div>
                     <button

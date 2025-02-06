@@ -29,16 +29,28 @@ nextApp.prepare().then(() => {
 
   // Socket.IO event handlers
   io.on('connection', (socket) => {
-    console.log('a user connected');
+    console.log('a user connected:', socket.id);
+
+    // Send initial lobbies list when requested
+    socket.on('requestLobbies', () => {
+      console.log('Lobbies list requested by:', socket.id);
+      socket.emit('lobbiesUpdate', Array.from(lobbies.values()));
+    });
 
     socket.on('createLobby', (lobbyData) => {
+      console.log('Creating lobby:', lobbyData);
       const lobbyId = Date.now().toString();
       const lobby = {
         id: lobbyId,
         name: lobbyData.name || `Lobby ${lobbies.size + 1}`,
-        players: [{ id: socket.id, isHost: true }],
+        players: [{ 
+          id: socket.id, 
+          name: lobbyData.playerName || 'Anonymous',
+          isHost: true 
+        }],
         createdAt: new Date(),
-        gameStarted: false
+        gameStarted: false,
+        gameType: lobbyData.gameType || 'coop'
       };
       lobbies.set(lobbyId, lobby);
       socket.join(lobbyId);
@@ -46,21 +58,27 @@ nextApp.prepare().then(() => {
       socket.emit('joinedLobby', { lobbyId, isHost: true });
     });
 
-    socket.on('joinLobby', (lobbyId) => {
+    socket.on('joinLobby', ({ lobbyId, playerName }) => {
       const lobby = lobbies.get(lobbyId);
       if (lobby && !lobby.gameStarted) {
-        lobby.players.push({ id: socket.id, isHost: false });
+        lobby.players.push({ 
+          id: socket.id, 
+          name: playerName || 'Anonymous',
+          isHost: false 
+        });
         socket.join(lobbyId);
         io.emit('lobbiesUpdate', Array.from(lobbies.values()));
         socket.emit('joinedLobby', { lobbyId, isHost: false });
         io.to(lobbyId).emit('playerJoined', { 
-          playerId: socket.id, 
+          playerId: socket.id,
+          playerName: playerName || 'Anonymous',
           playerCount: lobby.players.length 
         });
       }
     });
 
     socket.on('startGame', (lobbyId) => {
+      console.log('Starting game for lobby:', lobbyId);
       const lobby = lobbies.get(lobbyId);
       if (lobby && lobby.players.find(p => p.id === socket.id)?.isHost) {
         lobby.gameStarted = true;
@@ -75,17 +93,67 @@ nextApp.prepare().then(() => {
           lives: 3,
           badlyPlaced: null,
         };
+        console.log('Created initial game state:', gameState);
         games.set(lobbyId, gameState);
         io.to(lobbyId).emit('gameStarting', { gameState });
       }
     });
 
-    socket.on('joinGame', ({ gameId }, callback) => {
-      const game = games.get(gameId);
-      if (game) {
-        socket.join(gameId);
-        callback(game);
-        io.to(gameId).emit('playerJoined', socket.id);
+    socket.on('joinGame', ({ gameId, playerName }, callback) => {
+      console.log('Join game request for:', gameId, 'from socket:', socket.id, 'name:', playerName);
+      console.log('Current games:', Array.from(games.keys()));
+      console.log('Current lobbies:', Array.from(lobbies.keys()));
+      console.log('Games map:', games);
+      console.log('Lobbies map:', lobbies);
+      
+      try {
+        const game = games.get(gameId);
+        if (game) {
+          console.log('Game found, joining room and sending state:', game);
+          // Update player name if they're already in the game
+          const existingPlayer = game.players.find(p => p.id === socket.id);
+          if (existingPlayer) {
+            existingPlayer.name = playerName;
+          } else {
+            game.players.push({ id: socket.id, name: playerName, isHost: false });
+          }
+          socket.join(gameId);
+          callback(game);
+          io.to(gameId).emit('playerJoined', { id: socket.id, name: playerName });
+        } else {
+          console.log('Game not found, checking lobbies');
+          const lobby = lobbies.get(gameId);
+          if (lobby) {
+            console.log('Found lobby, creating new game state');
+            // Update player name in lobby first
+            const lobbyPlayer = lobby.players.find(p => p.id === socket.id);
+            if (lobbyPlayer) {
+              lobbyPlayer.name = playerName;
+            }
+            const gameState = {
+              lobbyId: gameId,
+              players: lobby.players.map(p => ({ ...p, name: p.id === socket.id ? playerName : p.name || 'Anonymous' })),
+              currentRound: 0,
+              deck: [],
+              played: [],
+              next: null,
+              nextButOne: null,
+              lives: 3,
+              badlyPlaced: null,
+            };
+            console.log('Created new game state:', gameState);
+            games.set(gameId, gameState);
+            socket.join(gameId);
+            callback(gameState);
+            io.to(gameId).emit('playerJoined', { id: socket.id, name: playerName });
+          } else {
+            console.log('No lobby or game found for ID:', gameId);
+            callback(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error in joinGame handler:', error);
+        callback(null);
       }
     });
 

@@ -1,6 +1,18 @@
 @import "./variables.scss";
 @import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 
+:root {
+  --kb-black: #23272a;
+  --kb-white: #ffffff;
+  --kb-light-grey: #d3d3d3;
+  --kb-dark-grey: #696969;
+  --kb-live-red: #ff0000;
+  --kb-hover-red: #8b0000;
+  --kb-correct: #339966;
+  --kb-incorrect: #990000;
+    --kb-card-background: #ffffff;
+}
+
 html,
 body {
   padding: 0;

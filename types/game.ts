@@ -1,11 +1,19 @@
 import { Item, PlayedItem } from "./item";
 
+interface Player {
+  id: string;
+  name: string;
+  isHost: boolean;
+}
+
 export interface GameState {
-  badlyPlaced: null;
-  deck: Item[];
-  imageCache: [];
-  lives: 3;
-  next: Item | null;
-  nextButOne: Item | null;
-  played: PlayedItem[];
+  lobbyId: string;
+  players: Player[];
+  currentRound: number;
+  deck: any[];
+  played: any[];
+  next: any | null;
+  nextButOne: any | null;
+  lives: number;
+  badlyPlaced: any | null;
 }

@@ -25,7 +25,125 @@
   margin-bottom: 1rem;
 }
 
+.error-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+  text-align: center;
+}
+
+.error-message {
+  color: var(--kb-live-red);
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.game-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 1rem;
+}
+
+.game-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: var(--kb-dark-grey);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.nameInputContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+}
+
+.nameInputContainer h2 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: var(--kb-white);
+}
+
+.nameInput {
+  width: 100%;
+  max-width: 300px;
+  padding: 1rem;
+  font-size: 1.125rem;
+  background-color: var(--kb-dark-grey);
+  border: 2px solid var(--kb-grey);
+  border-radius: 8px;
+  color: var(--kb-white);
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--kb-live-red);
+}
+
+.joinButton {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  background-color: var(--kb-live-red);
+  color: var(--kb-black);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.joinButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-color: #ff5a1a;
+}
+
+.joinButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.players {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--kb-dark-grey);
+  border-radius: 8px;
+}
+
+.players h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--kb-light-grey);
+}
+
+.player {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--kb-black);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.player:last-child {
+  margin-bottom: 0;
 } 

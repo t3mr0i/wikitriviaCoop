@@ -1,0 +1,167 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.backLink {
+  color: var(--kb-light-grey);
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.2s;
+  margin-right: 1rem;
+  z-index: 2;
+  position: relative;
+}
+
+.backLink:hover {
+  color: var(--kb-white);
+}
+
+.setupForm {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--kb-dark-grey);
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.setupForm h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: var(--kb-white);
+}
+
+.inputGroup {
+  margin-bottom: 1.5rem;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--kb-light-grey);
+  font-size: 0.9rem;
+}
+
+.input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.125rem;
+  background-color: var(--kb-black);
+  border: 2px solid var(--kb-grey);
+  border-radius: 8px;
+  color: var(--kb-white);
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--kb-live-red);
+}
+
+.gameTypeButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.gameTypeButton {
+  position: relative;
+  padding: 1rem;
+  background-color: var(--kb-black);
+  border: 2px solid var(--kb-grey);
+  border-radius: 8px;
+  color: var(--kb-white);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gameTypeButton.active {
+  border-color: var(--kb-live-red);
+  background-color: rgba(255, 70, 0, 0.1);
+}
+
+.gameTypeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comingSoon {
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--kb-live-red);
+  white-space: nowrap;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  background-color: var(--kb-live-red);
+  color: var(--kb-black);
+  border: none;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-color: #ff5a1a;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.dotGrid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(var(--kb-dark-grey) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: 0.3;
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .setupForm {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .setupForm h1 {
+    font-size: 1.5rem;
+  }
+
+  .gameTypeButtons {
+    grid-template-columns: 1fr;
+  }
+} 

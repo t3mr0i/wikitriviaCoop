@@ -10,7 +10,7 @@
     padding-left: 20px;
     width: 192px;
     position: relative;
-    border: 1px dashed $dashes;
+    border: 1px dashed var(--kb-dark-grey);
     border-radius: 5px;
 
     .list {

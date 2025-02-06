@@ -1,0 +1,92 @@
+.instructions {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--kb-background);
+  color: var(--kb-text);
+}
+
+.wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, var(--kb-primary), var(--kb-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin-bottom: 2rem;
+  color: var(--kb-text-secondary);
+}
+
+.highscoreWrapper {
+  margin-bottom: 2rem;
+}
+
+.startButton {
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--kb-text);
+  background: linear-gradient(45deg, var(--kb-primary), var(--kb-secondary));
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.startButton:hover {
+  transform: scale(1.05);
+}
+
+.about {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: var(--kb-text-secondary);
+}
+
+.about a {
+  color: var(--kb-primary);
+  text-decoration: none;
+}
+
+.about a:hover {
+  text-decoration: underline;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.dotGrid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(var(--kb-text-secondary) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.1;
+} 

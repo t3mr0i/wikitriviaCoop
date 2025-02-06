@@ -1,4 +1,3 @@
-/* Remove the :root section entirely and start with container */
 .container {
   min-height: 100vh;
   display: flex;
@@ -108,4 +107,4 @@
     width: 100%;
     text-align: center;
   }
-} 
+}

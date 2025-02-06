@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "../styles/moves.module.scss";
 
 interface MovesProps {
   moves: { playerId: string; timestamp: number }[];
@@ -12,9 +13,9 @@ export default function Moves(props: MovesProps) {
   }
 
   return (
-    <div className="moves">
+    <div className={styles.moves}>
       {moves.map((move, index) => (
-        <div key={index} className="move">
+        <div key={index} className={styles.move}>
           Player {move.playerId} moved at{" "}
           {new Date(move.timestamp).toLocaleTimeString()} ({moves.length} moves)
         </div>

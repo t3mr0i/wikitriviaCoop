@@ -21,7 +21,7 @@
       .timeline {
         width: 100%;
         height: 1px;
-        border: 1px dashed $dashes;
+        border: 1px dashed var(--kb-dark-grey);
       }
     }
 

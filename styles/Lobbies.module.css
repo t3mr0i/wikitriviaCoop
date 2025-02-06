@@ -338,4 +338,166 @@
     margin: 0 1rem 2rem;
     padding: 1.5rem;
   }
+}
+
+.setupContainer {
+  min-height: 100vh;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.setupForm {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--kb-dark-grey);
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.setupForm h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: var(--kb-white);
+}
+
+.inputGroup {
+  margin-bottom: 1.5rem;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--kb-light-grey);
+  font-size: 0.9rem;
+}
+
+.gameTypeButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.gameTypeButton {
+  position: relative;
+  padding: 1rem;
+  background-color: var(--kb-black);
+  border: 2px solid var(--kb-grey);
+  border-radius: 8px;
+  color: var(--kb-white);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gameTypeButton.active {
+  border-color: var(--kb-live-red);
+  background-color: rgba(255, 70, 0, 0.1);
+}
+
+.gameTypeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comingSoon {
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--kb-live-red);
+  white-space: nowrap;
+}
+
+.gameType {
+  font-size: 0.8rem;
+  color: var(--kb-light-grey);
+  margin-top: 0.5rem;
+}
+
+.playerInfo {
+  font-size: 0.9rem;
+  color: var(--kb-light-grey);
+  margin-left: auto;
+}
+
+.playerList {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.playerItem {
+  padding: 0.5rem 1rem;
+  background-color: var(--kb-black);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.playerName {
+  font-size: 0.8rem;
+  color: var(--kb-light-grey);
+  padding: 0.25rem 0.5rem;
+  background-color: var(--kb-black);
+  border-radius: 4px;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+.inviteSection {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: var(--kb-black);
+  border-radius: 8px;
+}
+
+.inviteSection p {
+  color: var(--kb-light-grey);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.inviteLink {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inviteLinkInput {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: var(--kb-dark-grey);
+  border: 1px solid var(--kb-grey);
+  border-radius: 4px;
+  color: var(--kb-white);
+  font-size: 0.9rem;
+  cursor: text;
+}
+
+.copyButton {
+  padding: 0.5rem 1rem;
+  background-color: var(--kb-live-red);
+  color: var(--kb-black);
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  white-space: nowrap;
+}
+
+.copyButton:hover {
+  transform: translateY(-2px);
+  background-color: #ff5a1a;
 } 

@@ -1,119 +1,130 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { GameState } from "../types/game";
-import { Item } from "../types/item";
-import createState from "../lib/create-state";
-import Board from "./board";
-import Loading from "./loading";
-import Instructions from "./instructions";
-import badCards from "../lib/bad-cards";
-import io from "socket.io-client";
+import React, { useState, useEffect, useContext } from 'react';
 import { Socket } from 'socket.io-client';
+import { GameState } from '../types/game';
+import { GameContext } from '../pages/_app';
+import styles from '../styles/Game.module.css';
 
-interface GameProps {
+interface Props {
   socket: Socket;
   gameId: string;
 }
 
-export default function Game({ socket, gameId }: GameProps) {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+const Game = ({ socket, gameId }: Props) => {
+  const { playerName } = useContext(GameContext);
   const [loaded, setLoaded] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [connected, setConnected] = useState(false);
-  const [players, setPlayers] = useState<string[]>([]);
+  const [connected, setConnected] = useState(socket.connected);
+  const [hasGameState, setHasGameState] = useState(false);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+
+  // Debug state
+  useEffect(() => {
+    console.log('State Debug:', {
+      loaded,
+      connected,
+      hasGameState,
+      gameState,
+      error,
+      isJoining
+    });
+  }, [loaded, connected, hasGameState, gameState, error, isJoining]);
 
   useEffect(() => {
     if (!socket || !gameId) return;
 
-    socket.on("connect", () => {
-      console.log("connected to game:", gameId);
-      setConnected(true);
+    console.log('Setting up socket with gameId:', gameId, 'socket id:', socket.id);
 
-      socket.emit("joinGame", { gameId }, (initialGameState: GameState) => {
-        setGameState(initialGameState);
+    // Set up event listeners
+    const setupSocketListeners = () => {
+      socket.on('connect', () => {
+        console.log('Socket connected in game');
+        setConnected(true);
+        // Re-join game if we were disconnected
+        if (!hasGameState && !isJoining) {
+          joinGame();
+        }
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected in game');
+        setConnected(false);
+      });
+
+      socket.on('gameState', (state: GameState) => {
+        console.log('Received game state:', state);
+        setGameState(state);
+        setHasGameState(true);
         setLoaded(true);
       });
-    });
-
-    socket.on("gameState", (newGameState: GameState) => {
-      setGameState(newGameState);
-    });
-
-    socket.on("playerJoined", (playerId: string) => {
-      setPlayers((prevPlayers) => [...prevPlayers, playerId]);
-    });
-
-    socket.on("playerLeft", (playerId: string) => {
-      setPlayers((prevPlayers) => prevPlayers.filter((id) => id !== playerId));
-    });
-
-    socket.on("disconnect", () => {
-      console.log("disconnected from game:", gameId);
-      setConnected(false);
-      setGameState(null);
-      setPlayers([]);
-    });
-
-    return () => {
-      socket.disconnect();
     };
-  }, [socket, gameId]);
 
-  useEffect(() => {
-    if (!socket || !gameId) return;
-
-    socket.on("updateGameState", (newGameState: any) => {
-      setGameState(newGameState);
-    });
-  }, [socket, gameId]);
-
-  const resetGame = React.useCallback(() => {
-    if (socket && gameId) {
-      socket.emit("joinGame", { gameId }, (initialGameState: GameState) => {
-        setGameState(initialGameState);
-        setLoaded(true);
+    const joinGame = () => {
+      console.log('Joining game with ID:', gameId);
+      setIsJoining(true);
+      socket.emit('joinGame', { gameId, playerName }, (response: GameState | null) => {
+        console.log('Join game response:', response);
+        if (response) {
+          setGameState(response);
+          setHasGameState(true);
+          setLoaded(true);
+        } else {
+          setError('Failed to join game. The game may not exist.');
+        }
+        setIsJoining(false);
       });
+    };
+
+    // If socket is already connected, we can start setting up events
+    if (socket.connected) {
+      console.log('Socket already connected, setting up events');
+      setupSocketListeners();
+      if (!hasGameState && !isJoining) {
+        joinGame();
+      }
     }
-  }, [socket, gameId]);
 
-  const [highscore, setHighscore] = React.useState<number>(
-    Number(localStorage.getItem("highscore") ?? "0")
-  );
+    // Cleanup function
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('gameState');
+    };
+  }, [socket, gameId, playerName, hasGameState, isJoining]);
 
-  const updateHighscore = React.useCallback((score: number) => {
-    localStorage.setItem("highscore", String(score));
-    setHighscore(score);
-  }, []);
-
-  useEffect(() => {
-    if (gameState && socket && gameId) {
-      socket.emit("gameStateUpdate", { gameId, state: gameState });
-    }
-  }, [gameState, socket, gameId]);
-
-  if (!loaded || gameState === null) {
-    return <Loading />;
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <p className={styles.errorMessage}>{error}</p>
+      </div>
+    );
   }
 
-  if (!started) {
+  if (!loaded || !gameState) {
     return (
-      <Instructions highscore={highscore} start={() => setStarted(true)} />
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Loading game{!connected ? ' (Connecting to server...)' : '...'}</p>
+      </div>
     );
   }
 
   return (
-    <>
-      <p>Status: {connected ? "Connected" : "Disconnected"}</p>
-      <p>Players: {players.length}</p>
-      <Board
-        highscore={highscore}
-        state={gameState}
-        setState={setGameState}
-        resetGame={resetGame}
-        updateHighscore={updateHighscore}
-        socket={socket}
-      />
-    </>
+    <div className={styles.container}>
+      <div className={styles.gameInfo}>
+        <h2>Game #{gameId}</h2>
+        <div className={styles.players}>
+          <h3>Players:</h3>
+          {gameState.players.map((player) => (
+            <div key={player.id} className={styles.player}>
+              {player.name} {player.id === socket.id && '(You)'}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Add your game UI components here */}
+    </div>
   );
-}
+};
+
+export default Game;
