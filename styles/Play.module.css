@@ -1,0 +1,31 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 1rem;
+}
+
+.loadingContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--kb-dark-grey);
+  border-top: 4px solid var(--kb-live-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

@@ -1,11 +1,10 @@
 import React from 'react';
+import styles from '../styles/HowToPlay.module.scss';
 
 const HowToPlay: React.FC = () => {
   return (
-    <div>
+    <div className={styles.container}>
       <h1>How to Play Wikitrivia</h1>
-
-      <img src="/images/heart.svg" alt="Wikitrivia Gameplay Screenshot" style={{width: '100%', maxWidth: '600px'}} />
 
       <h2>Objective</h2>
       <p>Place the cards on the timeline in the correct order.</p>

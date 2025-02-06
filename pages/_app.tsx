@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { polyfill } from "seamless-scroll-polyfill";
+import Head from 'next/head';
 import "../styles/globals.css";
 
 import { io } from 'socket.io-client';
@@ -38,7 +39,17 @@ function App({ Component, pageProps }: AppProps) {
     };
   }, []);
 
-  return <Component {...pageProps} socket={socket} />;
+  return (
+    <>
+      <Head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
+      <Component {...pageProps} socket={socket} />
+    </>
+  );
 }
 
 export default App;

@@ -8,14 +8,14 @@ import Loading from "./loading";
 import Instructions from "./instructions";
 import badCards from "../lib/bad-cards";
 import io from "socket.io-client";
-
 import { Socket } from 'socket.io-client';
 
 interface GameProps {
   socket: Socket;
+  gameId: string;
 }
 
-export default function Game({ socket }: GameProps) {
+export default function Game({ socket, gameId }: GameProps) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [started, setStarted] = useState(false);
@@ -24,11 +24,13 @@ export default function Game({ socket }: GameProps) {
   const [players, setPlayers] = useState<string[]>([]);
 
   useEffect(() => {
+    if (!socket || !gameId) return;
+
     socket.on("connect", () => {
-      console.log("connected");
+      console.log("connected to game:", gameId);
       setConnected(true);
 
-      socket.emit("joinGame", (initialGameState: GameState) => {
+      socket.emit("joinGame", { gameId }, (initialGameState: GameState) => {
         setGameState(initialGameState);
         setLoaded(true);
       });
@@ -47,7 +49,7 @@ export default function Game({ socket }: GameProps) {
     });
 
     socket.on("disconnect", () => {
-      console.log("disconnected");
+      console.log("disconnected from game:", gameId);
       setConnected(false);
       setGameState(null);
       setPlayers([]);
@@ -56,22 +58,24 @@ export default function Game({ socket }: GameProps) {
     return () => {
       socket.disconnect();
     };
-  }, [socket]);
+  }, [socket, gameId]);
 
   useEffect(() => {
+    if (!socket || !gameId) return;
+
     socket.on("updateGameState", (newGameState: any) => {
       setGameState(newGameState);
     });
-  }, [socket]);
+  }, [socket, gameId]);
 
   const resetGame = React.useCallback(() => {
-    if (socket) {
-      socket.emit("joinGame", (initialGameState: GameState) => {
+    if (socket && gameId) {
+      socket.emit("joinGame", { gameId }, (initialGameState: GameState) => {
         setGameState(initialGameState);
         setLoaded(true);
       });
     }
-  }, [socket]);
+  }, [socket, gameId]);
 
   const [highscore, setHighscore] = React.useState<number>(
     Number(localStorage.getItem("highscore") ?? "0")
@@ -83,10 +87,10 @@ export default function Game({ socket }: GameProps) {
   }, []);
 
   useEffect(() => {
-    if (gameState && socket) {
-      socket.emit("gameStateUpdate", gameState);
+    if (gameState && socket && gameId) {
+      socket.emit("gameStateUpdate", { gameId, state: gameState });
     }
-  }, [gameState, socket]);
+  }, [gameState, socket, gameId]);
 
   if (!loaded || gameState === null) {
     return <Loading />;

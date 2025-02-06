@@ -68,9 +68,32 @@ nextApp.prepare().then(() => {
           lobbyId,
           players: lobby.players,
           currentRound: 0,
+          deck: [],
+          played: [],
+          next: null,
+          nextButOne: null,
+          lives: 3,
+          badlyPlaced: null,
         };
         games.set(lobbyId, gameState);
         io.to(lobbyId).emit('gameStarting', { gameState });
+      }
+    });
+
+    socket.on('joinGame', ({ gameId }, callback) => {
+      const game = games.get(gameId);
+      if (game) {
+        socket.join(gameId);
+        callback(game);
+        io.to(gameId).emit('playerJoined', socket.id);
+      }
+    });
+
+    socket.on('gameStateUpdate', ({ gameId, state }) => {
+      const game = games.get(gameId);
+      if (game) {
+        games.set(gameId, state);
+        socket.to(gameId).emit('gameState', state);
       }
     });
 
