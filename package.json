@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "build": "next build",
-  "dev": "concurrently \"npm run server\" \"next dev -p 3003\"",
-  "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,json,yml}\"",
-  "lint": "eslint --max-warnings=0 --cache --ext .js,.ts,.tsx .",
-  "lint-fix": "eslint --fix --cache --ext .js,.ts,.tsx .",
+    "dev": "concurrently \"npm run server\" \"next dev -p 3003\"",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,json,yml}\"",
+    "lint": "eslint --max-warnings=0 --cache --ext .js,.ts,.tsx .",
+    "lint-fix": "eslint --fix --cache --ext .js,.ts,.tsx .",
     "start": "next start",
     "server": "node server.js"
   },

@@ -1,14 +1,44 @@
-import React from "react";
-import { AppProps } from "next/app";
+import React, { useState, useEffect } from "react";
 import { polyfill } from "seamless-scroll-polyfill";
-import "../styles/globals.scss";
+import "../styles/globals.css";
+
+import { io } from 'socket.io-client';
+import type { AppProps } from 'next/app';
+import { Socket } from 'socket.io-client';
 
 function App({ Component, pageProps }: AppProps) {
-  React.useEffect(() => {
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
     polyfill();
+    const newSocket = io('http://localhost:3003', {
+      path: '/api/socketio',
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+
+    // Clean up the socket connection when the component unmounts
+    return () => {
+      newSocket.disconnect();
+    };
   }, []);
 
-  return <Component {...pageProps} />;
+  return <Component {...pageProps} socket={socket} />;
 }
 
 export default App;

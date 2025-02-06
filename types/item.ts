@@ -18,3 +18,5 @@ export type PlayedItem = Item & {
   };
   moves?: { playerId: string; timestamp: number }[];
 };
+
+export type ItemWithMoves = Item & { moves: { playerId: string; timestamp: number }[] };

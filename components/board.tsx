@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useMemo, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { GameState } from "../types/game";
 import useAutoMoveSensor from "../lib/useAutoMoveSensor";
@@ -8,6 +8,9 @@ import PlayedItemList from "./played-item-list";
 import styles from "../styles/board.module.scss";
 import Hearts from "./hearts";
 import GameOver from "./game-over";
+import io from "socket.io-client";
+import Moves from "./moves";
+import { Item } from "../types/item";
 
 interface Props {
   highscore: number;
@@ -15,12 +18,13 @@ interface Props {
   state: GameState;
   setState: (state: GameState) => void;
   updateHighscore: (score: number) => void;
+  socket: ReturnType<typeof io>;
 }
 
 export default function Board(props: Props) {
-  const { highscore, resetGame, state, setState, updateHighscore } = props;
+  const { highscore, resetGame, state, setState, updateHighscore, socket } = props;
 
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   async function onDragStart() {
     setIsDragging(true);
@@ -40,6 +44,12 @@ export default function Board(props: Props) {
       return;
     }
 
+    const playerId = socket.id;
+
+    if (!playerId) {
+      console.error("Player ID is not available");
+      return;
+    }
     const item = { ...state.next };
 
     if (source.droppableId === "next" && destination.droppableId === "played") {
@@ -53,6 +63,7 @@ export default function Board(props: Props) {
       newPlayed.splice(destination.index, 0, {
         ...state.next,
         played: { correct },
+        moves: [{ playerId, timestamp: Date.now() }],
       });
 
       const newNext = state.nextButOne;
@@ -60,9 +71,17 @@ export default function Board(props: Props) {
         newDeck,
         newNext ? [...newPlayed, newNext] : newPlayed
       );
-      const newImageCache = [preloadImage(newNextButOne.image)];
+      const newImageCache: HTMLImageElement[] = newNextButOne?.image ? [preloadImage(newNextButOne.image)] : [];
 
-      setState({
+      let badlyPlacedValue = correct
+          ? null
+          : {
+              index: destination.index,
+              rendered: false,
+              delta,
+            };
+
+      const gameStateUpdate = {
         ...state,
         deck: newDeck,
         imageCache: newImageCache,
@@ -70,50 +89,62 @@ export default function Board(props: Props) {
         nextButOne: newNextButOne,
         played: newPlayed,
         lives: correct ? state.lives : state.lives - 1,
-        badlyPlaced: correct
-          ? null
-          : {
-              index: destination.index,
-              rendered: false,
-              delta,
-            },
+        badlyPlaced: badlyPlacedValue,
+      } as GameState;
+      setState(gameStateUpdate);
+      socket.emit("moveCard", {
+        playerId,
+        source,
+        destination,
+        itemId: item.id,
       });
     } else if (
       source.droppableId === "played" &&
       destination.droppableId === "played"
     ) {
       const newPlayed = [...state.played];
-      const [item] = newPlayed.splice(source.index, 1);
-      newPlayed.splice(destination.index, 0, item);
+      const [movedItem] = newPlayed.splice(source.index, 1);
 
-      setState({
+      movedItem.moves = [
+        ...(movedItem.moves || []),
+        { playerId, timestamp: Date.now() },
+      ];
+      newPlayed.splice(destination.index, 0, movedItem);
+
+      const gameStateUpdate: GameState = {
         ...state,
         played: newPlayed,
         badlyPlaced: null,
+      } as GameState;
+      setState(gameStateUpdate);
+      socket.emit("moveCard", {
+        playerId,
+        source,
+        destination,
+        itemId: movedItem.id,
       });
     }
-  }
+  };
 
   // Ensure that newly placed items are rendered as draggables before trying to
   // move them to the right place if needed.
-  React.useLayoutEffect(() => {
-    if (
-      state.badlyPlaced &&
-      state.badlyPlaced.index !== null &&
-      !state.badlyPlaced.rendered
-    ) {
-      setState({
-        ...state,
-        badlyPlaced: { ...state.badlyPlaced, rendered: true },
+  useLayoutEffect(() => {
+    if (state.badlyPlaced) {
+      setState((prev: GameState) => {
+        const newState: GameState = {
+          ...prev,
+          badlyPlaced: state.badlyPlaced === null ? null : {...state.badlyPlaced},
+        };
+        return newState;
       });
     }
-  }, [setState, state]);
+  }, [setState, state.badlyPlaced]);
 
-  const score = React.useMemo(() => {
+  const score = useMemo(() => {
     return state.played.filter((item) => item.played.correct).length - 1;
   }, [state.played]);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (score > highscore) {
       updateHighscore(score);
     }
@@ -130,7 +161,7 @@ export default function Board(props: Props) {
           <Hearts lives={state.lives} />
           {state.lives > 0 ? (
             <>
-              <NextItemList next={state.next} />
+              {state.next && <NextItemList next={state.next} />}
             </>
           ) : (
             <GameOver
@@ -148,6 +179,7 @@ export default function Board(props: Props) {
             isDragging={isDragging}
             items={state.played}
           />
+          <Moves moves={state.played.flatMap((item) => item.moves || [])} />
         </div>
       </div>
     </DragDropContext>

@@ -1,7 +1,10 @@
 import { Item, PlayedItem } from "../types/item";
 import { createWikimediaImage } from "./image";
 
-export function getRandomItem(deck: Item[], played: Item[]): Item {
+export function getRandomItem(deck: Item[], played: Item[]): Item | null {
+  if (deck.length === 0) {
+    return null;
+  }
   const periods: [number, number][] = [
     [-100000, 1000],
     [1000, 1800],
@@ -26,7 +29,10 @@ export function getRandomItem(deck: Item[], played: Item[]): Item {
   if (candidates.length > 0) {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
-  return deck[Math.floor(Math.random() * deck.length)];
+  if (deck.length > 0) {
+    return deck[Math.floor(Math.random() * deck.length)];
+  }
+  return null;
 }
 
 function tooClose(item: Item, played: Item[]) {

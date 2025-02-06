@@ -1,155 +1,107 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fetch = require('node-fetch');
-const { checkCorrect, getRandomItem } = require('./lib/items');
+const next = require('next');
+const fs = require('fs');
+const path = require('path');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*', // Allow all origins
-    methods: ['GET', 'POST'],
-  },
-});
+const dev = process.env.NODE_ENV !== 'production';
+const nextApp = next({ dev });
+const nextHandler = nextApp.getRequestHandler();
+const port = parseInt(process.env.PORT || '3003', 10);
 
-const port = process.env.PORT || 3001;
+// Store active lobbies and games
+const lobbies = new Map();
+const games = new Map();
 
-let gameState = {
-  badlyPlaced: null,
-  deck: [],
-  imageCache: [],
-  lives: 3,
-  next: null,
-  nextButOne: null,
-  played: [],
-};
-
-async function initializeDeck() {
-    const itemsResponse = await fetch('http://localhost:3003/items.json'); // Assuming Next.js is running on port 3003
-    const items = await itemsResponse.json();
-    gameState.deck = items;
-    gameState.played = [
-      { ...getRandomItem(gameState.deck, []), played: { correct: true } },
-    ];
-    gameState.next = getRandomItem(gameState.deck, gameState.played);
-    gameState.nextButOne = getRandomItem(gameState.deck, [
-      ...gameState.played,
-      gameState.next,
-    ]);
-}
-
-io.on('connection', (socket) => {
-  console.log('a user connected');
-
-    socket.on('joinGame', async (callback) => {
-    if (gameState.deck.length === 0) {
-      await initializeDeck();
-    }
-    callback(gameState);
-    socket.broadcast.emit('playerJoined', socket.id);
+nextApp.prepare().then(() => {
+  const app = express();
+  const server = http.createServer(app);
+  
+  // Initialize Socket.IO with proper CORS and path
+  const io = new Server(server, {
+    path: '/api/socketio',
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST'],
+    },
   });
 
-  socket.on(
-    'moveCard',
-    (data) => {
-      const { playerId, source, destination, itemId } = data;
+  // Socket.IO event handlers
+  io.on('connection', (socket) => {
+    console.log('a user connected');
 
-      if (
-        !destination ||
-        gameState.next === null ||
-        (source.droppableId === 'next' && destination.droppableId === 'next')
-      ) {
-        return;
-      }
-
-      let item;
-
-      if (source.droppableId === 'next') {
-        item = { ...gameState.next };
-      } else {
-        const playedItem = gameState.played.find((i) => i.id === itemId);
-        if (!playedItem) {
-          console.error("Couldn't find played item with id", itemId);
-          return;
-        }
-        item = { ...playedItem };
-      }
-
-      if (
-        source.droppableId === 'next' &&
-        destination.droppableId === 'played'
-      ) {
-        const newDeck = [...gameState.deck];
-        const newPlayed = [...gameState.played];
-        const { correct } = checkCorrect(
-          newPlayed,
-          item,
-          destination.index
-        );
-        const playedItem = {
-          ...gameState.next,
-          played: { correct },
-          moves: [{ playerId, timestamp: Date.now() }],
-        };
-        newPlayed.splice(destination.index, 0, playedItem);
-
-        const newNext = gameState.nextButOne;
-        const newNextButOne = getRandomItem(
-          newDeck,
-          newNext ? [...newPlayed, newNext] : newPlayed
-        );
-
-        gameState = {
-          ...gameState,
-          deck: newDeck,
-          imageCache: [],
-          next: newNext,
-          nextButOne: newNextButOne,
-          played: newPlayed,
-          lives: correct ? gameState.lives : gameState.lives - 1,
-          badlyPlaced: correct
-            ? null
-            : {
-                index: destination.index,
-                rendered: false,
-                delta: 0, // Assuming delta is not critical for multiplayer
-              },
-        };
-      } else if (
-        source.droppableId === 'played' &&
-        destination.droppableId === 'played'
-      ) {
-        const newPlayed = [...gameState.played];
-        const [movedItem] = newPlayed.splice(source.index, 1);
-
-        movedItem.moves = [
-          ...(movedItem.moves || []),
-          { playerId, timestamp: Date.now() },
-        ];
-        newPlayed.splice(destination.index, 0, movedItem);
-
-        gameState = {
-          ...gameState,
-          played: newPlayed,
-          badlyPlaced: null,
-        };
-      }
-
-      io.emit('gameState', gameState);
-    }
-  );
-    socket.on('gameStateUpdate', (newGameState) => {
-        gameState = newGameState;
-        socket.broadcast.emit('gameState', gameState)
+    socket.on('createLobby', (lobbyData) => {
+      const lobbyId = Date.now().toString();
+      const lobby = {
+        id: lobbyId,
+        name: lobbyData.name || `Lobby ${lobbies.size + 1}`,
+        players: [{ id: socket.id, isHost: true }],
+        createdAt: new Date(),
+        gameStarted: false
+      };
+      lobbies.set(lobbyId, lobby);
+      socket.join(lobbyId);
+      io.emit('lobbiesUpdate', Array.from(lobbies.values()));
+      socket.emit('joinedLobby', { lobbyId, isHost: true });
     });
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-    socket.broadcast.emit('playerLeft', socket.id);
-  });
-});
+    socket.on('joinLobby', (lobbyId) => {
+      const lobby = lobbies.get(lobbyId);
+      if (lobby && !lobby.gameStarted) {
+        lobby.players.push({ id: socket.id, isHost: false });
+        socket.join(lobbyId);
+        io.emit('lobbiesUpdate', Array.from(lobbies.values()));
+        socket.emit('joinedLobby', { lobbyId, isHost: false });
+        io.to(lobbyId).emit('playerJoined', { 
+          playerId: socket.id, 
+          playerCount: lobby.players.length 
+        });
+      }
+    });
 
-server.listen(port, () => {
-  console.log(`Socket.IO server running at http://localhost:${port}`);
+    socket.on('startGame', (lobbyId) => {
+      const lobby = lobbies.get(lobbyId);
+      if (lobby && lobby.players.find(p => p.id === socket.id)?.isHost) {
+        lobby.gameStarted = true;
+        const gameState = {
+          lobbyId,
+          players: lobby.players,
+          currentRound: 0,
+        };
+        games.set(lobbyId, gameState);
+        io.to(lobbyId).emit('gameStarting', { gameState });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log('user disconnected');
+      lobbies.forEach((lobby, lobbyId) => {
+        const playerIndex = lobby.players.findIndex(p => p.id === socket.id);
+        if (playerIndex !== -1) {
+          lobby.players.splice(playerIndex, 1);
+          if (lobby.players.length === 0) {
+            lobbies.delete(lobbyId);
+            games.delete(lobbyId);
+          } else if (lobby.players[0]) {
+            lobby.players[0].isHost = true;
+          }
+          io.emit('lobbiesUpdate', Array.from(lobbies.values()));
+          io.to(lobbyId).emit('playerLeft', { 
+            playerId: socket.id, 
+            playerCount: lobby.players.length 
+          });
+        }
+      });
+    });
+  });
+
+  // Handle Next.js requests
+  app.all('*', (req, res) => {
+    return nextHandler(req, res);
+  });
+
+  server.listen(port, () => {
+    console.log(`> Ready on http://localhost:${port}`);
+  });
 });

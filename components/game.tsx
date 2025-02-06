@@ -9,9 +9,13 @@ import Instructions from "./instructions";
 import badCards from "../lib/bad-cards";
 import io from "socket.io-client";
 
-let socket: ReturnType<typeof io>;
+import { Socket } from 'socket.io-client';
 
-export default function Game() {
+interface GameProps {
+  socket: Socket;
+}
+
+export default function Game({ socket }: GameProps) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [started, setStarted] = useState(false);
@@ -19,9 +23,7 @@ export default function Game() {
   const [connected, setConnected] = useState(false);
   const [players, setPlayers] = useState<string[]>([]);
 
-useEffect(() => {
-    socket = io('http://localhost:3001');
-
+  useEffect(() => {
     socket.on("connect", () => {
       console.log("connected");
       setConnected(true);
@@ -54,7 +56,13 @@ useEffect(() => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [socket]);
+
+  useEffect(() => {
+    socket.on("updateGameState", (newGameState: any) => {
+      setGameState(newGameState);
+    });
+  }, [socket]);
 
   const resetGame = React.useCallback(() => {
     if (socket) {
@@ -63,7 +71,7 @@ useEffect(() => {
         setLoaded(true);
       });
     }
-  }, []);
+  }, [socket]);
 
   const [highscore, setHighscore] = React.useState<number>(
     Number(localStorage.getItem("highscore") ?? "0")
@@ -100,6 +108,7 @@ useEffect(() => {
         setState={setGameState}
         resetGame={resetGame}
         updateHighscore={updateHighscore}
+        socket={socket}
       />
     </>
   );
