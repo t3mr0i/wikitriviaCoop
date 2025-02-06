@@ -92,19 +92,17 @@ nextApp.prepare().then(() => {
           nextButOne: null,
           lives: 3,
           badlyPlaced: null,
+          gameType: lobby.gameType || 'coop'
         };
         console.log('Created initial game state:', gameState);
         games.set(lobbyId, gameState);
         io.to(lobbyId).emit('gameStarting', { gameState });
+        io.to(lobbyId).emit('gameState', gameState);
       }
     });
 
     socket.on('joinGame', ({ gameId, playerName }, callback) => {
       console.log('Join game request for:', gameId, 'from socket:', socket.id, 'name:', playerName);
-      console.log('Current games:', Array.from(games.keys()));
-      console.log('Current lobbies:', Array.from(lobbies.keys()));
-      console.log('Games map:', games);
-      console.log('Lobbies map:', lobbies);
       
       try {
         const game = games.get(gameId);
@@ -119,37 +117,10 @@ nextApp.prepare().then(() => {
           }
           socket.join(gameId);
           callback(game);
-          io.to(gameId).emit('playerJoined', { id: socket.id, name: playerName });
+          io.to(gameId).emit('gameState', game);
         } else {
-          console.log('Game not found, checking lobbies');
-          const lobby = lobbies.get(gameId);
-          if (lobby) {
-            console.log('Found lobby, creating new game state');
-            // Update player name in lobby first
-            const lobbyPlayer = lobby.players.find(p => p.id === socket.id);
-            if (lobbyPlayer) {
-              lobbyPlayer.name = playerName;
-            }
-            const gameState = {
-              lobbyId: gameId,
-              players: lobby.players.map(p => ({ ...p, name: p.id === socket.id ? playerName : p.name || 'Anonymous' })),
-              currentRound: 0,
-              deck: [],
-              played: [],
-              next: null,
-              nextButOne: null,
-              lives: 3,
-              badlyPlaced: null,
-            };
-            console.log('Created new game state:', gameState);
-            games.set(gameId, gameState);
-            socket.join(gameId);
-            callback(gameState);
-            io.to(gameId).emit('playerJoined', { id: socket.id, name: playerName });
-          } else {
-            console.log('No lobby or game found for ID:', gameId);
-            callback(null);
-          }
+          console.log('Game not found');
+          callback(null);
         }
       } catch (error) {
         console.error('Error in joinGame handler:', error);

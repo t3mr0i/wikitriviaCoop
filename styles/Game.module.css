@@ -1,0 +1,101 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.gameInfo {
+  background-color: var(--kb-dark-grey);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.gameInfo h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  color: var(--kb-white);
+}
+
+.players {
+  margin-top: 1rem;
+}
+
+.players h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--kb-light-grey);
+}
+
+.player {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--kb-black);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.player:last-child {
+  margin-bottom: 0;
+}
+
+.loadingContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--kb-dark-grey);
+  border-top: 4px solid var(--kb-live-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.errorContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 2rem;
+  text-align: center;
+}
+
+.errorMessage {
+  color: var(--kb-live-red);
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .gameInfo {
+    padding: 1rem;
+  }
+
+  .gameInfo h2 {
+    font-size: 1.25rem;
+  }
+} 

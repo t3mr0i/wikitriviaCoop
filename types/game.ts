@@ -1,9 +1,14 @@
 import { Item, PlayedItem } from "./item";
 
-interface Player {
+export type { Item, PlayedItem };
+
+export interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  lives: number;
+  ready: boolean;
+  ranking?: number;
 }
 
 export interface GameState {
@@ -14,6 +19,5 @@ export interface GameState {
   played: any[];
   next: any | null;
   nextButOne: any | null;
-  lives: number;
   badlyPlaced: any | null;
 }

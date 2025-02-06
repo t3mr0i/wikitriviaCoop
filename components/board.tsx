@@ -6,11 +6,13 @@ import { checkCorrect, getRandomItem, preloadImage } from "../lib/items";
 import NextItemList from "./next-item-list";
 import PlayedItemList from "./played-item-list";
 import styles from "../styles/board.module.scss";
-import Hearts from "./hearts";
-import GameOver from "./game-over";
-import io from "socket.io-client";
-import Moves from "./moves";
-import { Item } from "../types/item";
+import Hearts from './hearts';
+import GameOver from './game-over';
+import io from 'socket.io-client';
+import Moves from './moves';
+import { Item } from '../types/item';
+import { Player } from '../types/game';
+import Ranking from './ranking';
 
 interface Props {
   highscore: number;
@@ -21,9 +23,30 @@ interface Props {
   socket: ReturnType<typeof io>;
 }
 
-export default function Board(props: Props) {
-  const { highscore, resetGame, state, setState, updateHighscore, socket } = props;
+interface PlayerInfoProps {
+  player: Player;
+  isCurrentUser: boolean;
+  setReady: (ready: boolean) => void;
+}
 
+const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentUser, setReady }) => {
+  return (
+    <div>
+      <span>{player.name}</span>
+      <Hearts lives={player.lives} />
+      <span>Ready: {player.ready ? 'Yes' : 'No'}</span>
+      {isCurrentUser && (
+        <button onClick={() => setReady(!player.ready)}>
+          {player.ready ? 'Unready' : 'Ready'}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export default function Board(props: Props) {
+  const { highscore, resetGame, state: gameStateProp, setState: setGameStateProp, updateHighscore, socket } = props;
+  const [state, setState] = useState(gameStateProp);
   const [isDragging, setIsDragging] = useState(false);
 
   async function onDragStart() {
@@ -74,33 +97,43 @@ export default function Board(props: Props) {
       const newImageCache: HTMLImageElement[] = newNextButOne?.image ? [preloadImage(newNextButOne.image)] : [];
 
       let badlyPlacedValue = correct
-          ? null
-          : {
-              index: destination.index,
-              rendered: false,
-              delta,
-            };
+        ? null
+        : {
+          index: destination.index,
+          rendered: false,
+          delta,
+        };
 
-      const gameStateUpdate = {
-        ...state,
-        deck: newDeck,
-        imageCache: newImageCache,
-        next: newNext,
-        nextButOne: newNextButOne,
-        played: newPlayed,
-        lives: correct ? state.lives : state.lives - 1,
-        badlyPlaced: badlyPlacedValue,
-      } as GameState;
-      setState(gameStateUpdate);
-      socket.emit("moveCard", {
-        playerId,
-        source,
-        destination,
-        itemId: item.id,
-      });
+      // Find the player who made the move
+      const playerIndex = state.players.findIndex(p => p.id === playerId);
+      if (playerIndex !== -1) {
+        // Update the player's lives
+        const updatedPlayers = [...state.players];
+        updatedPlayers[playerIndex] = {
+          ...updatedPlayers[playerIndex],
+          lives: correct ? updatedPlayers[playerIndex].lives : updatedPlayers[playerIndex].lives - 1,
+        };
+
+        const gameStateUpdate = {
+          ...state,
+          deck: newDeck,
+          imageCache: newImageCache,
+          next: newNext,
+          nextButOne: newNextButOne,
+          played: newPlayed,
+          players: updatedPlayers, // Update the players array in the game state
+          badlyPlaced: badlyPlacedValue,
+        } as GameState;
+        setState(gameStateUpdate);
+        socket.emit("moveCard", {
+          playerId,
+          source,
+          destination,
+          itemId: item.id,
+        });
+      }
     } else if (
-      source.droppableId === "played" &&
-      destination.droppableId === "played"
+      source.droppableId === "played" && destination.droppableId === "played"
     ) {
       const newPlayed = [...state.played];
       const [movedItem] = newPlayed.splice(source.index, 1);
@@ -117,11 +150,11 @@ export default function Board(props: Props) {
         badlyPlaced: null,
       } as GameState;
       setState(gameStateUpdate);
-      socket.emit("moveCard", {
+      socket.emit('moveCard', {
         playerId,
         source,
         destination,
-        itemId: movedItem.id,
+        itemId: item.id,
       });
     }
   };
@@ -130,15 +163,12 @@ export default function Board(props: Props) {
   // move them to the right place if needed.
   useLayoutEffect(() => {
     if (state.badlyPlaced) {
-      setState((prev: GameState) => {
-        const newState: GameState = {
-          ...prev,
-          badlyPlaced: state.badlyPlaced === null ? null : {...state.badlyPlaced},
-        };
-        return newState;
-      });
+      setState((prevState: GameState) => ({
+        ...prevState,
+        badlyPlaced: state.badlyPlaced === null ? null : { ...state.badlyPlaced },
+      }));
     }
-  }, [setState, state.badlyPlaced]);
+  }, [state.badlyPlaced, setState]);
 
   const score = useMemo(() => {
     return state.played.filter((item) => item.played.correct).length - 1;
@@ -158,18 +188,18 @@ export default function Board(props: Props) {
     >
       <div className={styles.wrapper}>
         <div className={styles.top}>
-          <Hearts lives={state.lives} />
-          {state.lives > 0 ? (
-            <>
-              {state.next && <NextItemList next={state.next} />}
-            </>
-          ) : (
-            <GameOver
-              highscore={highscore}
-              resetGame={resetGame}
-              score={score}
+          {state.players.map((player) => (
+            <PlayerInfo
+              key={player.id}
+              player={player}
+              isCurrentUser={player.id === socket.id}
+              setReady={(ready) => {
+                socket.emit('setReady', ready);
+              }}
             />
-          )}
+          ))}
+          {state.next && <NextItemList next={state.next} onClick={() => socket.emit('placeCard')}/>}
+          <Ranking players={state.players} />
         </div>
         <div id="bottom" className={styles.bottom}>
           <PlayedItemList

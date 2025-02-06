@@ -8,6 +8,7 @@ interface Props {
   highscore: number;
   resetGame: () => void;
   score: number;
+  players: any[];
 }
 
 const defaultShareText = "Share";
@@ -24,7 +25,7 @@ function getMedal(score: number): string {
 }
 
 export default function GameOver(props: Props) {
-  const { highscore, resetGame, score } = props;
+  const { highscore, resetGame, score, players } = props;
 
   const animProps = useSpring({
     opacity: 1,
@@ -55,6 +56,14 @@ export default function GameOver(props: Props) {
         <div className={styles.score}>
           <Score score={highscore} title="Best streak" />
         </div>
+      </div>
+      <div className={styles.ranking}>
+        <h3>Ranking:</h3>
+        {players.map((player) => (
+          <div key={player.id}>
+            {player.name}: {player.ranking}
+          </div>
+        ))}
       </div>
       <div className={styles.buttons}>
         <Button onClick={resetGame} text="Play again" />

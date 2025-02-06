@@ -11,19 +11,22 @@ export const GameContext = React.createContext<{
   socket: Socket | null;
   playerName: string;
   setPlayerName: (name: string) => void;
+  gameState: any;
 }>({
   socket: null,
   playerName: '',
   setPlayerName: () => {},
+  gameState: null,
 });
 
 function App({ Component, pageProps }: AppProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [playerName, setPlayerName] = useState('');
+  const [gameState, setGameState] = useState(null);
 
   useEffect(() => {
     polyfill();
-    
+
     // Only create socket if we don't have one
     if (!socket) {
       const newSocket = io('http://localhost:3003', {
@@ -41,6 +44,11 @@ function App({ Component, pageProps }: AppProps) {
         console.error('Socket connection error:', error);
       });
 
+      newSocket.on('gameState', (state) => {
+        console.log('Received game state in App:', state);
+        setGameState(state);
+      });
+
       setSocket(newSocket);
     }
 
@@ -52,7 +60,7 @@ function App({ Component, pageProps }: AppProps) {
   }, [socket]);
 
   return (
-    <GameContext.Provider value={{ socket, playerName, setPlayerName }}>
+    <GameContext.Provider value={{ socket, playerName, setPlayerName, gameState }}>
       <Head>
         <link
           href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"

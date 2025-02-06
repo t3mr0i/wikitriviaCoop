@@ -54,10 +54,9 @@ const Setup = () => {
               type="button"
               className={`${styles.gameTypeButton} ${gameType === 'versus' ? styles.active : ''}`}
               onClick={() => setGameType('versus')}
-              disabled
+            
             >
               Versus
-              <span className={styles.comingSoon}>Coming Soon</span>
             </button>
           </div>
         </div>

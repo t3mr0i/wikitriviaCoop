@@ -6,13 +6,14 @@ import styles from "../styles/next-item-list.module.scss";
 
 interface NextItemListProps {
   next: Item | null;
+  onClick?: () => void;
 }
 
 export default function NextItemList(props: NextItemListProps) {
-  const { next } = props;
+  const { next, onClick } = props;
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} onClick={onClick}>
       <Droppable droppableId="next" direction="horizontal">
         {(provided) => (
           <div className={styles.wrapper}>

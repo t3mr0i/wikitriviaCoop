@@ -8,7 +8,7 @@ import Link from 'next/link';
 const PlayGame = () => {
   const router = useRouter();
   const { id } = router.query;
-  const { socket, playerName } = useContext(GameContext);
+  const { socket, playerName, gameState } = useContext(GameContext);
 
   useEffect(() => {
     // Redirect to setup if no player name
@@ -47,11 +47,20 @@ const PlayGame = () => {
     );
   }
 
+  if (!gameState) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Loading game...</p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
-      <Game socket={socket} gameId={id as string} />
+      <Game socket={socket} gameId={id as string} gameType={gameState.gameType} />
     </div>
   );
 };
 
-export default PlayGame; 
+export default PlayGame;

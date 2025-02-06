@@ -10,7 +10,7 @@ interface Lobby {
   players: { id: string; name: string; isHost: boolean }[];
   createdAt: string;
   gameStarted: boolean;
-  gameType?: 'coop' | 'versus';
+  gameType: 'coop' | 'versus';
 }
 
 const Lobbies = () => {
@@ -22,6 +22,7 @@ const Lobbies = () => {
   const [lobbyName, setLobbyName] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [currentLobby, setCurrentLobby] = useState<string | null>(null);
+  const [gameType, setGameType] = useState<'coop' | 'versus'>('coop');
 
   useEffect(() => {
     // Redirect to setup if no player name
@@ -122,9 +123,10 @@ const Lobbies = () => {
   const handleCreateLobby = (e: React.FormEvent) => {
     e.preventDefault();
     if (socket && lobbyName.trim()) {
-      socket.emit('createLobby', { 
+      socket.emit('createLobby', {
         name: lobbyName,
-        playerName
+        playerName,
+        gameType
       });
       setLobbyName('');
       setShowCreateForm(false);
@@ -236,11 +238,22 @@ const Lobbies = () => {
                 required
               />
               <div className={styles.formButtons}>
+                <label>
+                  Game Type:
+                  <select
+                    value={gameType}
+                    onChange={(e) => setGameType(e.target.value as 'coop' | 'versus')}
+                    className={styles.select}
+                  >
+                    <option value="coop">Coop</option>
+                    <option value="versus">Versus</option>
+                  </select>
+                </label>
                 <button type="submit" className={styles.submitButton}>
                   Create
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowCreateForm(false)}
                   className={styles.cancelButton}
                 >
@@ -260,6 +273,10 @@ const Lobbies = () => {
                   <div key={lobby.id} className={styles.lobbyCard}>
                     <div className={styles.lobbyInfo}>
                       <h3>{lobby.name}</h3>
+                      <div className={styles.lobbyDetails}>
+                        <span>Game Type: {lobby.gameType || 'Coop'}</span>
+                        <span>{lobby.gameStarted ? 'Game Started' : 'Waiting'}</span>
+                      </div>
                       <div className={styles.playerCount}>
                         <span className={styles.playerIcon}>👥</span>
                         <span>{lobby.players.length} players</span>
