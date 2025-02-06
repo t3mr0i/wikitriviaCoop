@@ -16,4 +16,5 @@ export type PlayedItem = Item & {
   played: {
     correct: boolean;
   };
+  moves?: { playerId: string; timestamp: number }[];
 };

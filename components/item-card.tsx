@@ -40,6 +40,7 @@ function capitalize(str: string): string {
 
 export default function ItemCard(props: Props) {
   const { draggable, flippedId, index, item, setFlippedId } = props;
+  const moves = "moves" in item ? item.moves : undefined;
 
   const flipped = item.id === flippedId;
 
@@ -145,6 +146,19 @@ export default function ItemCard(props: Props) {
               >
                 Wikipedia
               </a>
+              {moves && moves.length > 0 && (
+                <div className={styles.moves}>
+                  <h4>Move History:</h4>
+                  <ul>
+                    {moves.map((move, index) => (
+                      <li key={index}>
+                        Player: {move.playerId}, Timestamp:{" "}
+                        {new Date(move.timestamp).toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </animated.div>
           </div>
         );
