@@ -58,7 +58,7 @@ const PlayGame = () => {
 
   return (
     <div className={styles.container}>
-      <Game socket={socket} gameId={id as string} gameType={gameState.gameType} />
+      <Game socket={socket} gameId={id as string} />
     </div>
   );
 };

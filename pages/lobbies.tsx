@@ -237,23 +237,33 @@ const Lobbies = () => {
                 className={styles.input}
                 required
               />
-              <div className={styles.formButtons}>
-                <label>
-                  Game Type:
-                  <select
-                    value={gameType}
-                    onChange={(e) => setGameType(e.target.value as 'coop' | 'versus')}
-                    className={styles.select}
+              <div className={styles.inputGroup}>
+                <label>Game Type</label>
+                <div className={styles.gameTypeButtons}>
+                  <button
+                    type="button"
+                    className={`${styles.gameTypeButton} ${gameType === 'coop' ? styles.active : ''}`}
+                    onClick={() => setGameType('coop')}
                   >
-                    <option value="coop">Coop</option>
-                    <option value="versus">Versus</option>
-                  </select>
-                </label>
+                    Cooperative
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.gameTypeButton} ${gameType === 'versus' ? styles.active : ''}`}
+                    onClick={() => setGameType('versus')}
+                    disabled
+                  >
+                    Versus
+                    <span className={styles.comingSoon}>Coming Soon</span>
+                  </button>
+                </div>
+              </div>
+              <div className={styles.formButtons}>
                 <button type="submit" className={styles.submitButton}>
                   Create
                 </button>
-                <button
-                  type="button"
+                <button 
+                  type="button" 
                   onClick={() => setShowCreateForm(false)}
                   className={styles.cancelButton}
                 >

@@ -8,7 +8,6 @@ const Setup = () => {
   const router = useRouter();
   const { playerName, setPlayerName } = useContext(GameContext);
   const [name, setName] = React.useState(playerName);
-  const [gameType, setGameType] = React.useState<'coop' | 'versus'>('coop');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,27 +37,6 @@ const Setup = () => {
             minLength={2}
             maxLength={20}
           />
-        </div>
-        <div className={styles.inputGroup}>
-          <label>Game Type</label>
-          <div className={styles.gameTypeButtons}>
-            <button
-              type="button"
-              className={`${styles.gameTypeButton} ${gameType === 'coop' ? styles.active : ''}`}
-              onClick={() => setGameType('coop')}
-            >
-              Cooperative
-              <span className={styles.comingSoon}></span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.gameTypeButton} ${gameType === 'versus' ? styles.active : ''}`}
-              onClick={() => setGameType('versus')}
-            
-            >
-              Versus
-            </button>
-          </div>
         </div>
         <button type="submit" className={styles.submitButton} disabled={!name.trim()}>
           Continue to Lobbies

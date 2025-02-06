@@ -13,14 +13,13 @@ import Moves from './moves';
 import { Item } from '../types/item';
 import { Player } from '../types/game';
 import Ranking from './ranking';
+import { Socket } from 'socket.io-client';
 
 interface Props {
-  highscore: number;
-  resetGame: () => void;
-  state: GameState;
-  setState: (state: GameState) => void;
-  updateHighscore: (score: number) => void;
-  socket: ReturnType<typeof io>;
+  gameState: GameState;
+  setGameState: (state: GameState) => void;
+  socket: Socket;
+  gameId: string;
 }
 
 interface PlayerInfoProps {
@@ -44,9 +43,8 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentUser, setReady
   );
 };
 
-export default function Board(props: Props) {
-  const { highscore, resetGame, state: gameStateProp, setState: setGameStateProp, updateHighscore, socket } = props;
-  const [state, setState] = useState(gameStateProp);
+const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => {
+  const [state, setState] = useState(gameState);
   const [isDragging, setIsDragging] = useState(false);
 
   async function onDragStart() {
@@ -174,12 +172,6 @@ export default function Board(props: Props) {
     return state.played.filter((item) => item.played.correct).length - 1;
   }, [state.played]);
 
-  useLayoutEffect(() => {
-    if (score > highscore) {
-      updateHighscore(score);
-    }
-  }, [score, highscore, updateHighscore]);
-
   return (
     <DragDropContext
       onDragEnd={onDragEnd}
@@ -199,7 +191,10 @@ export default function Board(props: Props) {
             />
           ))}
           {state.next && <NextItemList next={state.next} onClick={() => socket.emit('placeCard')}/>}
-          <Ranking players={state.players} />
+          <Ranking 
+            players={state.players} 
+            currentPlayerId={socket.id || ''} 
+          />
         </div>
         <div id="bottom" className={styles.bottom}>
           <PlayedItemList
@@ -215,3 +210,5 @@ export default function Board(props: Props) {
     </DragDropContext>
   );
 }
+
+export default Board;

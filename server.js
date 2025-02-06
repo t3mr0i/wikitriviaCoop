@@ -10,6 +10,23 @@ const nextApp = next({ dev });
 const nextHandler = nextApp.getRequestHandler();
 const port = parseInt(process.env.PORT || '3003', 10);
 
+// Load items data
+const items = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public', 'items.json'), 'utf8'));
+
+// Helper function to get random items
+function getRandomItems(count) {
+  const shuffled = [...items].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
+// Helper function to get a random item not in the used items
+function getRandomItem(usedItems = []) {
+  const usedIds = new Set(usedItems.map(item => item.id));
+  const availableItems = items.filter(item => !usedIds.has(item.id));
+  if (availableItems.length === 0) return null;
+  return availableItems[Math.floor(Math.random() * availableItems.length)];
+}
+
 // Store active lobbies and games
 const lobbies = new Map();
 const games = new Map();
@@ -82,18 +99,36 @@ nextApp.prepare().then(() => {
       const lobby = lobbies.get(lobbyId);
       if (lobby && lobby.players.find(p => p.id === socket.id)?.isHost) {
         lobby.gameStarted = true;
+
+        // Initialize the game with some items
+        const deck = getRandomItems(50); // Get 50 random items for the deck
+        const [next, ...remainingDeck] = deck;
+        const nextButOne = getRandomItem([next]);
+
         const gameState = {
           lobbyId,
-          players: lobby.players,
+          players: lobby.players.map(p => ({
+            ...p,
+            lives: 3,
+            ready: false,
+            ranking: 0
+          })),
           currentRound: 0,
-          deck: [],
-          played: [],
-          next: null,
-          nextButOne: null,
+          deck: remainingDeck,
+          played: [{
+            id: 'start',
+            title: 'Start',
+            date: new Date(0).toISOString(),
+            image: null,
+            played: { correct: true }
+          }],
+          next,
+          nextButOne,
           lives: 3,
           badlyPlaced: null,
           gameType: lobby.gameType || 'coop'
         };
+
         console.log('Created initial game state:', gameState);
         games.set(lobbyId, gameState);
         io.to(lobbyId).emit('gameStarting', { gameState });

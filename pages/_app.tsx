@@ -5,24 +5,27 @@ import "../styles/globals.css";
 import { io } from 'socket.io-client';
 import type { AppProps } from 'next/app';
 import { Socket } from 'socket.io-client';
+import { GameState } from '../types/game';
 
 // Create a context for the socket and player name
 export const GameContext = React.createContext<{
   socket: Socket | null;
   playerName: string;
   setPlayerName: (name: string) => void;
-  gameState: any;
+  gameState: GameState | null;
+  setGameState: (state: GameState | null) => void;
 }>({
   socket: null,
   playerName: '',
   setPlayerName: () => {},
   gameState: null,
+  setGameState: () => {},
 });
 
 function App({ Component, pageProps }: AppProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [playerName, setPlayerName] = useState('');
-  const [gameState, setGameState] = useState(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
     polyfill();
@@ -44,9 +47,14 @@ function App({ Component, pageProps }: AppProps) {
         console.error('Socket connection error:', error);
       });
 
-      newSocket.on('gameState', (state) => {
+      newSocket.on('gameState', (state: GameState) => {
         console.log('Received game state in App:', state);
         setGameState(state);
+      });
+
+      newSocket.on('gameStarting', ({ gameState }: { gameState: GameState }) => {
+        console.log('Game starting with state:', gameState);
+        setGameState(gameState);
       });
 
       setSocket(newSocket);
@@ -60,7 +68,7 @@ function App({ Component, pageProps }: AppProps) {
   }, [socket]);
 
   return (
-    <GameContext.Provider value={{ socket, playerName, setPlayerName, gameState }}>
+    <GameContext.Provider value={{ socket, playerName, setPlayerName, gameState, setGameState }}>
       <Head>
         <link
           href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
