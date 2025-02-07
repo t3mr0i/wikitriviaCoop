@@ -1,26 +1,27 @@
 import React from "react";
 import styles from "../styles/Instructions.module.css";
-import Score from "./score";
 
 interface Props {
-  highscore: number;
   start: () => void;
 }
 
-export default function Instructions(props: Props) {
-  const { highscore, start } = props;
-
+const Instructions: React.FC<Props> = ({ start }) => {
   return (
     <div className={styles.instructions}>
       <div className={styles.wrapper}>
         <h1 className={styles.title}>Wiki History Game</h1>
         <h2 className={styles.subtitle}>Place the cards on the timeline in the correct order.</h2>
         
-        {highscore !== 0 && (
-          <div className={styles.highscoreWrapper}>
-            <Score score={highscore} title="Best streak" />
-          </div>
-        )}
+        <div className={styles.rules}>
+          <h3>How to Play:</h3>
+          <ol>
+            <li>Look at the card shown at the top</li>
+            <li>Drag it to where you think it belongs in the timeline</li>
+            <li>If you're correct, the card stays and you get a new one</li>
+            <li>If you're wrong, you lose a life</li>
+            <li>Work together to build the longest timeline!</li>
+          </ol>
+        </div>
 
         <button onClick={start} className={styles.startButton}>
           Start Game
@@ -53,4 +54,6 @@ export default function Instructions(props: Props) {
       </div>
     </div>
   );
-}
+};
+
+export default Instructions;

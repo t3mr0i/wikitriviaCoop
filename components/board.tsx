@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useState, useEffect } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { GameState } from "../types/game";
 import useAutoMoveSensor from "../lib/useAutoMoveSensor";
@@ -20,6 +20,7 @@ interface Props {
   setGameState: (state: GameState) => void;
   socket: Socket;
   gameId: string;
+  items: Item[];
 }
 
 interface PlayerInfoProps {
@@ -43,44 +44,57 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentUser, setReady
   );
 };
 
-const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => {
+const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId, items }) => {
   const [state, setState] = useState(gameState);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Keep local state in sync with props
+  useEffect(() => {
+    setState(gameState);
+  }, [gameState]);
+
+  console.log('Board render state:', {
+    hasNext: !!state.next,
+    nextId: state.next?.id,
+    playedCount: state.played?.length,
+    deckSize: state.deck?.length,
+    isDragging
+  });
+
   async function onDragStart() {
     setIsDragging(true);
-    navigator.vibrate(20);
+    if (typeof navigator.vibrate === 'function') {
+      navigator.vibrate(20);
+    }
   }
 
   async function onDragEnd(result: DropResult) {
     setIsDragging(false);
+    console.log('Drag end:', result);
 
     const { source, destination } = result;
 
-    if (
-      !destination ||
-      state.next === null ||
-      (source.droppableId === "next" && destination.droppableId === "next")
-    ) {
+    if (!destination || !state.next || (source.droppableId === "next" && destination.droppableId === "next")) {
       return;
     }
 
     const playerId = socket.id;
-
     if (!playerId) {
       console.error("Player ID is not available");
       return;
     }
+
     const item = { ...state.next };
+    console.log('Moving item:', item);
 
     if (source.droppableId === "next" && destination.droppableId === "played") {
+      console.log('Moving from next to played');
       const newDeck = [...state.deck];
       const newPlayed = [...state.played];
-      const { correct, delta } = checkCorrect(
-        newPlayed,
-        item,
-        destination.index
-      );
+      const { correct, delta } = checkCorrect(newPlayed, item, destination.index);
+      
+      console.log('Move check:', { correct, delta });
+      
       newPlayed.splice(destination.index, 0, {
         ...state.next,
         played: { correct },
@@ -88,19 +102,12 @@ const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => 
       });
 
       const newNext = state.nextButOne;
-      const newNextButOne = getRandomItem(
-        newDeck,
-        newNext ? [...newPlayed, newNext] : newPlayed
-      );
-      const newImageCache: HTMLImageElement[] = newNextButOne?.image ? [preloadImage(newNextButOne.image)] : [];
-
-      let badlyPlacedValue = correct
-        ? null
-        : {
-          index: destination.index,
-          rendered: false,
-          delta,
-        };
+      const newNextButOne = getRandomItem(newDeck, newNext ? [...newPlayed, newNext] : newPlayed);
+      
+      console.log('New cards:', { 
+        newNext: newNext?.id, 
+        newNextButOne: newNextButOne?.id 
+      });
 
       // Find the player who made the move
       const playerIndex = state.players.findIndex(p => p.id === playerId);
@@ -115,24 +122,32 @@ const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => 
         const gameStateUpdate = {
           ...state,
           deck: newDeck,
-          imageCache: newImageCache,
           next: newNext,
           nextButOne: newNextButOne,
           played: newPlayed,
-          players: updatedPlayers, // Update the players array in the game state
-          badlyPlaced: badlyPlacedValue,
+          players: updatedPlayers,
+          badlyPlaced: correct ? null : {
+            index: destination.index,
+            rendered: false,
+            delta,
+          },
         } as GameState;
+
+        console.log('Updating game state:', {
+          deckSize: newDeck.length,
+          hasNext: !!newNext,
+          nextId: newNext?.id,
+          playedCount: newPlayed.length
+        });
+
         setState(gameStateUpdate);
-        socket.emit("moveCard", {
-          playerId,
-          source,
-          destination,
-          itemId: item.id,
+        socket.emit('gameStateUpdate', {
+          gameId,
+          state: gameStateUpdate
         });
       }
-    } else if (
-      source.droppableId === "played" && destination.droppableId === "played"
-    ) {
+    } else if (source.droppableId === "played" && destination.droppableId === "played") {
+      console.log('Reordering played cards');
       const newPlayed = [...state.played];
       const [movedItem] = newPlayed.splice(source.index, 1);
 
@@ -142,20 +157,19 @@ const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => 
       ];
       newPlayed.splice(destination.index, 0, movedItem);
 
-      const gameStateUpdate: GameState = {
+      const gameStateUpdate = {
         ...state,
         played: newPlayed,
         badlyPlaced: null,
       } as GameState;
+
       setState(gameStateUpdate);
-      socket.emit('moveCard', {
-        playerId,
-        source,
-        destination,
-        itemId: item.id,
+      socket.emit('gameStateUpdate', {
+        gameId,
+        state: gameStateUpdate
       });
     }
-  };
+  }
 
   // Ensure that newly placed items are rendered as draggables before trying to
   // move them to the right place if needed.
@@ -190,11 +204,20 @@ const Board: React.FC<Props> = ({ gameState, setGameState, socket, gameId }) => 
               }}
             />
           ))}
-          {state.next && <NextItemList next={state.next} onClick={() => socket.emit('placeCard')}/>}
-          <Ranking 
-            players={state.players} 
-            currentPlayerId={socket.id || ''} 
-          />
+          {state.next && (
+            <div className={styles.nextCard}>
+              <NextItemList 
+                next={state.next} 
+                onClick={() => socket.emit('placeCard')}
+              />
+            </div>
+          )}
+          {state.gameType === 'versus' && (
+            <Ranking 
+              players={state.players} 
+              currentPlayerId={socket.id || ''} 
+            />
+          )}
         </div>
         <div id="bottom" className={styles.bottom}>
           <PlayedItemList

@@ -20,4 +20,7 @@ export interface GameState {
   next: any | null;
   nextButOne: any | null;
   badlyPlaced: any | null;
+  lives: number;
+  gameType: 'coop' | 'versus';
+  category: string;
 }

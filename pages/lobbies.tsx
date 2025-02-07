@@ -23,6 +23,16 @@ const Lobbies = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [currentLobby, setCurrentLobby] = useState<string | null>(null);
   const [gameType, setGameType] = useState<'coop' | 'versus'>('coop');
+  const [category, setCategory] = useState('all');
+
+  const categories = [
+    { id: 'all', name: 'All Categories' },
+    { id: 'video_games', name: 'Video Games' },
+    { id: 'cars', name: 'Cars & Vehicles' },
+    { id: 'sports', name: 'Sports' },
+    { id: 'movies', name: 'Movies & Films' },
+    { id: 'music', name: 'Music' }
+  ];
 
   useEffect(() => {
     // Redirect to setup if no player name
@@ -126,7 +136,8 @@ const Lobbies = () => {
       socket.emit('createLobby', {
         name: lobbyName,
         playerName,
-        gameType
+        gameType,
+        category
       });
       setLobbyName('');
       setShowCreateForm(false);
@@ -257,6 +268,20 @@ const Lobbies = () => {
                     <span className={styles.comingSoon}>Coming Soon</span>
                   </button>
                 </div>
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Category</label>
+                <select 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={styles.select}
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className={styles.formButtons}>
                 <button type="submit" className={styles.submitButton}>

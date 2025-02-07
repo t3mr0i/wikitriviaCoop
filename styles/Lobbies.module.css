@@ -500,4 +500,27 @@
 .copyButton:hover {
   transform: translateY(-2px);
   background-color: #ff5a1a;
+}
+
+.select {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: var(--kb-black);
+  border: 2px solid var(--kb-grey);
+  border-radius: 8px;
+  color: var(--kb-white);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--kb-live-red);
+}
+
+.select option {
+  background-color: var(--kb-black);
+  color: var(--kb-white);
+  padding: 0.5rem;
 } 
